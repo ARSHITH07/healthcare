@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <p class="eyebrow">Security Controls</p>
+    <h1>Validate or tamper with the chain</h1>
+    <p class="hero-text">
+        Use the validator to confirm the chain state, or run the tamper demo to see how integrity checks react.
+    </p>
+</section>
+
+<section class="content-grid">
+    <article class="panel">
+        <div class="panel-heading">
+            <p class="eyebrow">Validation</p>
+            <h2>Integrity check</h2>
+        </div>
+        <p class="panel-text">
+            Recalculate block hashes and verify that each block points to the correct previous hash.
+        </p>
+        <form action="{{ url_for('web.validate_chain') }}" method="post">
+            <button type="submit" class="button button-primary">Validate Blockchain</button>
+        </form>
+    </article>
+
+    <article class="panel">
+        <div class="panel-heading">
+            <p class="eyebrow">Tamper Demo</p>
+            <h2>Simulate unauthorized edits</h2>
+        </div>
+        <p class="panel-text">
+            Modify a diagnosis in an existing block without recomputing the hash to trigger detection.
+        </p>
+        <form action="{{ url_for('web.tamper_chain') }}" method="post" class="tamper-form">
+            <label>
+                <span>Block Index</span>
+                <input type="number" name="block_index" min="1" max="{{ total_blocks - 1 if total_blocks > 1 else 1 }}" placeholder="1">
+            </label>
+            <label>
+                <span>Replacement Diagnosis</span>
+                <input type="text" name="diagnosis" placeholder="Tampered diagnosis">
+            </label>
+            <button type="submit" class="button button-warning button-full">Tamper Selected Block</button>
+        </form>
+    </article>
+</section>
+{% endblock %}

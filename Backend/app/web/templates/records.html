@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <p class="eyebrow">Patient Intake</p>
+    <h1>Add a patient record</h1>
+    <p class="hero-text">
+        Submit a new entry to the healthcare ledger. Each submission becomes its own hashed block.
+    </p>
+</section>
+
+<section class="content-grid">
+    <article class="panel form-panel">
+        <div class="panel-heading">
+            <p class="eyebrow">Record Form</p>
+            <h2>Clinical details</h2>
+        </div>
+        <form action="{{ url_for('web.add_record') }}" method="post" class="record-form">
+            <label>
+                <span>Patient ID</span>
+                <input type="text" name="patient_id" placeholder="P-4010" required>
+            </label>
+            <label>
+                <span>Patient Name</span>
+                <input type="text" name="name" placeholder="Arjun Rao" required>
+            </label>
+            <label>
+                <span>Age</span>
+                <input type="number" name="age" placeholder="45" min="0">
+            </label>
+            <label>
+                <span>Diagnosis</span>
+                <input type="text" name="diagnosis" placeholder="Chronic condition summary">
+            </label>
+            <label>
+                <span>Treatment</span>
+                <textarea name="treatment" rows="5" placeholder="Medication, procedure, or care plan"></textarea>
+            </label>
+            <button type="submit" class="button button-primary button-full">Add Record to Ledger</button>
+        </form>
+    </article>
+
+    <article class="panel side-panel">
+        <div class="panel-heading">
+            <p class="eyebrow">Submission Context</p>
+            <h2>Chain metadata</h2>
+        </div>
+        <div class="stacked-metrics">
+            <div class="metric-row">
+                <span>Current chain status</span>
+                <strong class="{{ 'status-valid' if is_valid else 'status-invalid' }}">
+                    {{ 'Verified' if is_valid else 'Compromised' }}
+                </strong>
+            </div>
+            <div class="metric-row">
+                <span>Next block index</span>
+                <strong>{{ total_blocks }}</strong>
+            </div>
+            <div class="metric-row">
+                <span>Stored patient records</span>
+                <strong>{{ total_records }}</strong>
+            </div>
+        </div>
+    </article>
+</section>
+{% endblock %}

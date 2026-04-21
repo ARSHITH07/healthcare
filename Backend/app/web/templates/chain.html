@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="page-header">
+    <p class="eyebrow">Ledger Explorer</p>
+    <h1>Review the blockchain timeline</h1>
+    <p class="hero-text">
+        Inspect each stored block, previous hash linkage, and current cryptographic fingerprint.
+    </p>
+</section>
+
+<section class="panel chain-panel">
+    <div class="panel-heading">
+        <p class="eyebrow">Full Chain</p>
+        <h2>Block-by-block record view</h2>
+    </div>
+    <div class="chain-list">
+        {% for block in chain %}
+            <article class="block-card {{ 'block-genesis' if block.index == 0 else '' }}">
+                <div class="block-header">
+                    <div>
+                        <p class="block-index">Block {{ block.index }}</p>
+                        <h3>{{ block.patient_data.name if block.patient_data.name else 'Record Block' }}</h3>
+                    </div>
+                    <span class="pill">{{ 'Genesis' if block.index == 0 else 'Patient Record' }}</span>
+                </div>
+                <dl class="block-details">
+                    <div>
+                        <dt>Timestamp</dt>
+                        <dd>{{ block.timestamp }}</dd>
+                    </div>
+                    <div>
+                        <dt>Patient ID</dt>
+                        <dd>{{ block.patient_data.patient_id }}</dd>
+                    </div>
+                    <div>
+                        <dt>Age</dt>
+                        <dd>{{ block.patient_data.age }}</dd>
+                    </div>
+                    <div>
+                        <dt>Diagnosis</dt>
+                        <dd>{{ block.patient_data.diagnosis }}</dd>
+                    </div>
+                    <div>
+                        <dt>Treatment</dt>
+                        <dd>{{ block.patient_data.treatment }}</dd>
+                    </div>
+                </dl>
+                <div class="hash-stack">
+                    <div>
+                        <span>Previous Hash</span>
+                        <code>{{ block.previous_hash }}</code>
+                    </div>
+                    <div>
+                        <span>Current Hash</span>
+                        <code>{{ block.current_hash }}</code>
+                    </div>
+                </div>
+            </article>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header class="hero-panel">
+    <div class="hero-copy">
+        <p class="eyebrow">Clinical Trust Infrastructure</p>
+        <h1>Verifiable healthcare records with a cleaner operational view.</h1>
+        <p class="hero-text">
+            Monitor chain integrity, review ledger growth, and manage patient records through
+            a browser-based interface backed by persistent blockchain storage.
+        </p>
+        <div class="hero-actions">
+            <form action="{{ url_for('web.validate_chain') }}" method="post">
+                <button type="submit" class="button button-primary">Run Validation</button>
+            </form>
+            <a class="button button-secondary" href="{{ url_for('web.records_page') }}">Add New Record</a>
+        </div>
+    </div>
+    <aside class="hero-aside">
+        <div class="status-tile">
+            <span>Integrity Status</span>
+            <strong class="{{ 'status-valid' if is_valid else 'status-invalid' }}">
+                {{ 'Verified' if is_valid else 'Compromised' }}
+            </strong>
+        </div>
+        <div class="hero-aside-grid">
+            <div class="metric-card">
+                <span>Total Blocks</span>
+                <strong>{{ total_blocks }}</strong>
+            </div>
+            <div class="metric-card">
+                <span>Patient Records</span>
+                <strong>{{ total_records }}</strong>
+            </div>
+            <div class="metric-card">
+                <span>Hash Strategy</span>
+                <strong>{{ hashing_algorithm }}</strong>
+            </div>
+            <div class="metric-card">
+                <span>Ledger Store</span>
+                <strong>data/ledger.json</strong>
+            </div>
+        </div>
+    </aside>
+</header>
+
+<section class="content-grid content-grid-overview">
+    <article class="panel callout-panel">
+        <div class="panel-heading">
+            <p class="eyebrow">What This App Covers</p>
+            <h2>Operational snapshot</h2>
+        </div>
+        <p class="panel-text">
+            This system stores each patient record as a cryptographically linked block. Every block
+            preserves the previous hash, making unauthorized edits visible during validation.
+        </p>
+        <div class="feature-list">
+            <div class="feature-item">
+                <strong>Persistent ledger</strong>
+                <span>Loads from and saves to JSON automatically on startup and change.</span>
+            </div>
+            <div class="feature-item">
+                <strong>Hash strategy support</strong>
+                <span>Uses SHA-256 by default and can switch algorithms through the strategy layer.</span>
+            </div>
+            <div class="feature-item">
+                <strong>Tamper visibility</strong>
+                <span>Validation detects both broken links and mismatched recalculated hashes.</span>
+            </div>
+        </div>
+    </article>
+
+    <article class="panel timeline-panel">
+        <div class="panel-heading">
+            <p class="eyebrow">Recent Activity</p>
+            <h2>Latest blocks</h2>
+        </div>
+        <div class="mini-chain-list">
+            {% for block in recent_blocks %}
+                <div class="mini-chain-item">
+                    <div>
+                        <p class="mini-chain-index">Block {{ block.index }}</p>
+                        <strong>{{ block.patient_data.name if block.patient_data.name else 'Record Block' }}</strong>
+                    </div>
+                    <span class="pill">{{ block.patient_data.patient_id }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </article>
+</section>
+{% endblock %}
