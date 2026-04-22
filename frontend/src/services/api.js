@@ -4,7 +4,7 @@ const VALIDATION_HISTORY_KEY = "healthchain-validation-history";
 const TAMPER_COUNT_KEY = "healthchain-tamper-count";
 
 const http = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:5000",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "/api",
   timeout: 3000,
 });
 
@@ -51,6 +51,11 @@ const api = {
   async addBlock(payload) {
     const response = await http.post("/block", payload);
     return { block: response.data };
+  },
+
+  async updatePatientRecord(patientId, payload) {
+    const response = await http.put(`/records/${encodeURIComponent(patientId)}`, payload);
+    return response.data;
   },
 
   async validateChain() {

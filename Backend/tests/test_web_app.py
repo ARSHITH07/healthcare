@@ -98,6 +98,48 @@ def test_add_block_json(tmp_path) -> None:
     assert len(blockchain.get_chain()) == 2
 
 
+def test_update_patient_record_json(tmp_path) -> None:
+    client, blockchain = build_test_client(tmp_path)
+    blockchain.add_block(
+        {
+            "patient_id": "P-9003",
+            "name": "Maya Rao",
+            "age": 44,
+            "diagnosis": "Migraine",
+            "treatment": "Neurology follow-up",
+            "doctor_name": "Dr. Sen",
+        }
+    )
+
+    response = client.put(
+        "/records/P-9003",
+        json={
+            "age": 45,
+            "diagnosis": "Tension headache",
+            "treatment": "Updated care plan",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json["success"] is True
+    assert response.json["block"]["patient_data"]["age"] == 45
+    assert response.json["block"]["patient_data"]["diagnosis"] == "Tension headache"
+    assert blockchain.get_chain()[1]["patient_data"]["age"] == 45
+    assert blockchain.is_chain_valid() is True
+
+
+def test_update_patient_record_json_rejects_missing_patient(tmp_path) -> None:
+    client, _ = build_test_client(tmp_path)
+
+    response = client.put(
+        "/records/P-9999",
+        json={"diagnosis": "Updated"},
+    )
+
+    assert response.status_code == 404
+    assert "No patient record found" in response.json["error"]
+
+
 def test_validate_chain_json(tmp_path) -> None:
     client, _ = build_test_client(tmp_path)
 

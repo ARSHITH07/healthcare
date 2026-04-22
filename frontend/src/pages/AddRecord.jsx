@@ -70,7 +70,7 @@ function AddRecord() {
         tone: "success",
         title: "Patient record added and stored securely.",
         body: selectedFileName
-          ? `File "${selectedFileName}" noted. Demo mode does not upload the file to the server.`
+          ? `File "${selectedFileName}" noted.`
           : `New block created at index ${result.block.index}.`,
       });
     } catch {
@@ -192,10 +192,6 @@ function AddRecord() {
           ) : (
             <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600">
               <p className="font-semibold text-slate-800">No block has been generated yet.</p>
-              <p className="mt-2">
-                Fill in the patient details on the left and click "Add & Store Securely". After saving,
-                this panel will show only the save message.
-              </p>
             </div>
           )}
         </div>
