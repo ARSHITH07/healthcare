@@ -2,8 +2,10 @@ import { NavLink } from "react-router-dom";
 import {
   IconFolder,
   IconHome,
+  IconCog,
   IconLogo,
   IconShieldCheck,
+  IconProfile,
   IconUsers,
 } from "./icons";
 import { useAppContext } from "../context/AppContext";
@@ -13,6 +15,7 @@ const topNav = [
   { label: "Patients", to: "/add-record", icon: IconUsers },
   { label: "Records", to: "/ledger", icon: IconFolder },
   { label: "Blockchain Status", to: "/validate", icon: IconShieldCheck },
+  { label: "Settings", to: "/settings", icon: IconCog },
 ];
 
 function Navbar() {
@@ -47,9 +50,9 @@ function Navbar() {
         </nav>
 
         {user && (
-          <div className="hidden shrink-0 text-right text-white sm:block">
+          <div className="hidden shrink-0 items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-white sm:flex">
+            <IconProfile className="h-5 w-5 shrink-0" />
             <p className="max-w-[140px] truncate text-sm font-semibold">{user.name}</p>
-            <p className="text-xs text-white/75">{user.role}</p>
           </div>
         )}
       </div>

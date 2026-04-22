@@ -60,6 +60,44 @@ def test_blockchain_validation_fails_when_genesis_is_tampered(tmp_path: Path) ->
     assert blockchain.is_chain_valid() is False
 
 
+def test_update_patient_record_recalculates_chain(tmp_path: Path) -> None:
+    blockchain = build_test_blockchain(tmp_path)
+    blockchain.add_block(
+        {
+            "patient_id": "P-3020",
+            "name": "Rhea Nair",
+            "age": 31,
+            "diagnosis": "Migraines",
+            "treatment": "Medication",
+        }
+    )
+    blockchain.add_block(
+        {
+            "patient_id": "P-3021",
+            "name": "Kabir Shah",
+            "age": 40,
+            "diagnosis": "Diabetes",
+            "treatment": "Follow-up",
+        }
+    )
+
+    updated_block = blockchain.update_patient_record(
+        "P-3020",
+        {
+            "name": "Rhea Nair",
+            "age": 32,
+            "diagnosis": "Migraine",
+            "treatment": "Adjusted medication",
+        },
+    )
+
+    chain = blockchain.get_chain()
+    assert updated_block.patient_data["age"] == 32
+    assert chain[1]["current_hash"] == updated_block.current_hash
+    assert chain[2]["previous_hash"] == updated_block.current_hash
+    assert blockchain.is_chain_valid() is True
+
+
 def test_replace_chain_accepts_valid_import(tmp_path: Path) -> None:
     blockchain = build_test_blockchain(tmp_path)
     blockchain.add_block(

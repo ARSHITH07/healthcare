@@ -10,7 +10,7 @@ function formatTimestamp(ts) {
   return Number.isNaN(d.getTime()) ? String(ts) : d.toLocaleString();
 }
 
-function RecordDetailModal({ block, verified, onClose }) {
+function RecordDetailModal({ block, verified, onClose, onEdit }) {
   if (!block) return null;
 
   const pd = block.patient_data || {};
@@ -93,7 +93,16 @@ function RecordDetailModal({ block, verified, onClose }) {
           </p>
         </div>
 
-        <div className="mt-6 flex justify-end">
+        <div className="mt-6 flex flex-wrap justify-end gap-3">
+          {onEdit && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
+            >
+              Edit record
+            </button>
+          )}
           <button
             type="button"
             onClick={onClose}

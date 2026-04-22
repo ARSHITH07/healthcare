@@ -33,6 +33,18 @@ export function IconUsers({ className = "h-4 w-4" }) {
   );
 }
 
+export function IconProfile({ className = "h-4 w-4" }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M20 21a8 8 0 10-16 0m8-9a4 4 0 100-8 4 4 0 000 8z"
+      />
+    </svg>
+  );
+}
+
 export function IconFolder({ className = "h-4 w-4" }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden>

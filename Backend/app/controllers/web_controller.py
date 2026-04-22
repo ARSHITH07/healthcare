@@ -72,16 +72,19 @@ def create_web_blueprint(blockchain: Blockchain, config: AppConfig) -> Blueprint
         return redirect(url_for("web.chain_page"))
 
     @blueprint.get("/blockchain")
+    @blueprint.get("/api/blockchain")
     def get_blockchain() -> Any:
         return jsonify(blockchain.get_chain())
 
     @blueprint.get("/ledger/export")
+    @blueprint.get("/api/ledger/export")
     def export_ledger() -> Any:
         response = make_response(jsonify(blockchain.get_chain()))
         response.headers["Content-Disposition"] = 'attachment; filename="healthchain-ledger.json"'
         return response
 
     @blueprint.post("/ledger/import")
+    @blueprint.post("/api/ledger/import")
     def import_ledger() -> Any:
         payload = request.get_json(silent=True)
         if not isinstance(payload, list):
@@ -101,6 +104,7 @@ def create_web_blueprint(blockchain: Blockchain, config: AppConfig) -> Blueprint
         )
 
     @blueprint.post("/block")
+    @blueprint.post("/api/block")
     def add_block() -> Any:
         patient_data = _sanitize_form_payload(request.get_json(silent=True) or {})
 
@@ -110,7 +114,30 @@ def create_web_blueprint(blockchain: Blockchain, config: AppConfig) -> Blueprint
         block = blockchain.add_block(patient_data)
         return jsonify(block.to_dict()), 201
 
+    @blueprint.put("/records/<patient_id>")
+    @blueprint.put("/api/records/<patient_id>")
+    def update_record_json(patient_id: str) -> Any:
+        updates = _sanitize_form_payload(request.get_json(silent=True) or {})
+        if not updates:
+            return jsonify({"error": "At least one patient field is required"}), 400
+
+        try:
+            block = blockchain.update_patient_record(patient_id=patient_id, updates=updates)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except LookupError as exc:
+            return jsonify({"error": str(exc)}), 404
+
+        return jsonify(
+            {
+                "success": True,
+                "message": f"Patient record {patient_id} updated successfully.",
+                "block": block.to_dict(),
+            }
+        )
+
     @blueprint.get("/validate")
+    @blueprint.get("/api/validate")
     def validate_chain_json() -> Any:
         corrupted_index = blockchain.get_first_invalid_index()
         return jsonify(
@@ -122,6 +149,7 @@ def create_web_blueprint(blockchain: Blockchain, config: AppConfig) -> Blueprint
         )
 
     @blueprint.post("/validate")
+    @blueprint.post("/api/validate")
     def validate_chain() -> Any:
         if blockchain.is_chain_valid():
             flash("Blockchain integrity verified successfully.", "success")
@@ -130,6 +158,7 @@ def create_web_blueprint(blockchain: Blockchain, config: AppConfig) -> Blueprint
         return redirect(url_for("web.security_page"))
 
     @blueprint.put("/tamper/<int:index>")
+    @blueprint.put("/api/tamper/<int:index>")
     def tamper_block_json(index: int) -> Any:
         chain = blockchain.get_chain()
         if index <= 0 or index >= len(chain):

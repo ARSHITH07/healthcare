@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
+import EditRecordModal from "../components/EditRecordModal";
 import RecordDetailModal from "../components/RecordDetailModal";
 import { useAppContext } from "../context/AppContext";
+import api from "../services/api";
 
 function patientBlocks(chain) {
   return chain.filter((b) => b.index > 0);
@@ -31,6 +33,87 @@ function shortHash(hash) {
   return `${hash.slice(0, 10)}...${hash.slice(-6)}`;
 }
 
+function sanitizeUpdates(payload) {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== "" && value != null)
+  );
+}
+
+function pythonJsonStringify(value) {
+  if (value === null) {
+    return "null";
+  }
+
+  if (typeof value === "string") {
+    return JSON.stringify(value);
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? String(value) : "null";
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => pythonJsonStringify(item)).join(", ")}]`;
+  }
+
+  if (value && typeof value === "object") {
+    const entries = Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}: ${pythonJsonStringify(value[key])}`);
+    return `{${entries.join(", ")}}`;
+  }
+
+  return "null";
+}
+
+async function sha256Hex(input) {
+  const bytes = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function rebuildChainAfterEdit(chain, patientId, updates) {
+  const normalizedId = String(patientId || "").trim();
+  const sanitizedUpdates = sanitizeUpdates(updates);
+  const nextChain = chain.map((block) => ({
+    ...block,
+    patient_data: { ...(block.patient_data || {}) },
+  }));
+
+  const targetIndex = nextChain.findIndex(
+    (block) => block.index > 0 && String(block.patient_data?.patient_id) === normalizedId
+  );
+
+  if (targetIndex === -1) {
+    throw new Error(`No patient record found for patient ID ${normalizedId}.`);
+  }
+
+  nextChain[targetIndex].patient_data = {
+    ...nextChain[targetIndex].patient_data,
+    ...sanitizedUpdates,
+  };
+
+  for (let index = targetIndex; index < nextChain.length; index++) {
+    const currentBlock = nextChain[index];
+    if (index > 0) {
+      currentBlock.previous_hash = nextChain[index - 1].current_hash;
+    }
+    const payload = {
+      index: currentBlock.index,
+      timestamp: currentBlock.timestamp,
+      patient_data: currentBlock.patient_data,
+      previous_hash: currentBlock.previous_hash,
+    };
+    currentBlock.current_hash = await sha256Hex(pythonJsonStringify(payload));
+  }
+
+  return nextChain;
+}
+
 function downloadRecordJson(block) {
   const blob = new Blob([JSON.stringify(block, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -43,12 +126,14 @@ function downloadRecordJson(block) {
 }
 
 function Ledger() {
-  const { chain, integrity, pushToast } = useAppContext();
+  const { chain, integrity, pushToast, refreshChain } = useAppContext();
   const [search, setSearch] = useState("");
   const [diseaseFilter, setDiseaseFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [detailBlock, setDetailBlock] = useState(null);
+  const [editBlock, setEditBlock] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const issues = useMemo(() => {
     const raw = integrity?.issuesByIndex;
@@ -90,6 +175,45 @@ function Ledger() {
       return true;
     });
   }, [rows, search, diseaseFilter, dateFilter, statusFilter]);
+
+  const handleSaveEdit = async (payload) => {
+    if (!editBlock) return;
+    setSavingEdit(true);
+    try {
+      const patientId = editBlock.patient_data?.patient_id;
+      let updatedBlock = null;
+
+      try {
+        const response = await api.updatePatientRecord(patientId, payload);
+        updatedBlock = response.block;
+      } catch (error) {
+        const shouldFallback = error?.response?.status === 404 || error?.response?.status === 405;
+        if (!shouldFallback) {
+          throw error;
+        }
+
+        const rebuiltChain = await rebuildChainAfterEdit(chain, patientId, payload);
+        await api.importLedger(rebuiltChain);
+        updatedBlock =
+          rebuiltChain.find((block) => block.index === editBlock.index) || rebuiltChain[editBlock.index];
+      }
+
+      await refreshChain({ showLoading: false });
+      setEditBlock(null);
+      if (detailBlock && detailBlock.index === updatedBlock.index) {
+        setDetailBlock(updatedBlock);
+      }
+      pushToast({ tone: "success", message: "Patient record updated successfully." });
+    } catch (error) {
+      const message =
+        error?.response?.data?.error ||
+        error?.message ||
+        "Unable to update the patient record.";
+      pushToast({ tone: "error", message });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -210,6 +334,13 @@ function Ledger() {
                         </button>
                         <button
                           type="button"
+                          onClick={() => setEditBlock(block)}
+                          className="whitespace-nowrap rounded border border-blue-200 bg-blue-50 px-2 py-1 text-center text-xs font-medium text-blue-700 hover:bg-blue-100"
+                        >
+                          Edit record
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => {
                             downloadRecordJson(block);
                             pushToast({ tone: "info", message: "Record exported as JSON." });
@@ -233,6 +364,19 @@ function Ledger() {
           block={detailBlock}
           verified={!issues[detailBlock.index]}
           onClose={() => setDetailBlock(null)}
+          onEdit={() => setEditBlock(detailBlock)}
+        />
+      )}
+      {editBlock && (
+        <EditRecordModal
+          block={editBlock}
+          saving={savingEdit}
+          onClose={() => {
+            if (!savingEdit) {
+              setEditBlock(null);
+            }
+          }}
+          onSave={handleSaveEdit}
         />
       )}
     </div>

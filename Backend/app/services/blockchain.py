@@ -161,6 +161,41 @@ class Blockchain:
         self._persist_chain()
         self.logger.warning("Tampering performed on block index=%s", index)
 
+    def update_patient_record(self, patient_id: str, updates: dict[str, Any]) -> Block:
+        """Update a patient record and recompute hashes for the affected suffix."""
+        normalized_patient_id = str(patient_id).strip()
+        if not normalized_patient_id:
+            raise ValueError("patient_id is required.")
+
+        sanitized_updates = {
+            key: value
+            for key, value in updates.items()
+            if value not in (None, "") and key != "patient_id"
+        }
+        if not sanitized_updates:
+            raise ValueError("At least one patient field is required.")
+
+        for index in range(1, len(self.chain)):
+            block = self.chain[index]
+            if str(block.patient_data.get("patient_id")) != normalized_patient_id:
+                continue
+
+            block.patient_data.update(sanitized_updates)
+            self._rebuild_chain_from(index)
+            self._persist_chain()
+            self.logger.info("Patient record updated: patient_id=%s block=%s", normalized_patient_id, block.index)
+            return block
+
+        raise LookupError(f"No patient record found for patient ID {normalized_patient_id}.")
+
+    def _rebuild_chain_from(self, start_index: int) -> None:
+        """Recalculate hashes from the given index through the end of the chain."""
+        for index in range(start_index, len(self.chain)):
+            current_block = self.chain[index]
+            previous_block = self.chain[index - 1]
+            current_block.previous_hash = previous_block.current_hash
+            current_block.current_hash = self.hashing_strategy.calculate_hash(current_block)
+
     def _persist_chain(self) -> None:
         """Save the current chain state to disk."""
         self.storage_service.save(self.get_chain())

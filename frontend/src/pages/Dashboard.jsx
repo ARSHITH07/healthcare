@@ -18,6 +18,14 @@ function truncateHash(value, head = 8, tail = 6) {
   return `${value.slice(0, head)}...${value.slice(-tail)}`;
 }
 
+function monthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthLabel(date) {
+  return date.toLocaleDateString(undefined, { month: "short" });
+}
+
 function Dashboard() {
   const { chain, integrity } = useAppContext();
   const analysis = integrity;
@@ -33,14 +41,31 @@ function Dashboard() {
   const latest = chain[chain.length - 1];
 
   const chartData = useMemo(() => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-    const base = [42, 55, 48, 72, 90, 102];
-    const bump = 1 + Math.min(totalRecords, 24) * 0.035;
-    return months.map((month, i) => ({
-      month,
-      patients: Math.round(base[i] * bump),
-    }));
-  }, [totalRecords]);
+    const now = new Date();
+    const months = [];
+
+    for (let offset = 5; offset >= 0; offset -= 1) {
+      const date = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+      const key = monthKey(date);
+      months.push({
+        key,
+        month: monthLabel(date),
+        patients: 0,
+      });
+    }
+
+    for (const block of patientBlocks) {
+      const date = new Date(block.timestamp);
+      if (Number.isNaN(date.getTime())) continue;
+      const key = monthKey(date);
+      const bucket = months.find((entry) => entry.key === key);
+      if (bucket) {
+        bucket.patients += 1;
+      }
+    }
+
+    return months;
+  }, [patientBlocks]);
 
   const recentRows = useMemo(
     () =>
@@ -93,7 +118,7 @@ function Dashboard() {
       <div className="grid gap-4 xl:grid-cols-3">
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm xl:col-span-2">
           <h2 className="text-base font-semibold text-slate-900">Patient Growth</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Admissions trend (simulated demo projection)</p>
+          <p className="mt-0.5 text-xs text-slate-500">Admissions trend from the actual blockchain records</p>
           <div className="mt-4 h-64 w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
